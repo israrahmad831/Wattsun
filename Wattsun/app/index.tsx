@@ -3,17 +3,15 @@ import {
   View,
   Text,
   TextInput,
-  FlatList,
-  Button,
   StyleSheet,
   ScrollView,
   Modal,
   TouchableOpacity,
-  Image, // Import Image component
+  Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import logo from "../assets/images/Wattsun.png"; // Import the logo
+import logo from "../assets/images/Wattsun.png";
 
 export default function EditableInvoice() {
   const router = useRouter();
@@ -35,7 +33,9 @@ export default function EditableInvoice() {
     invoiceNumber: 0,
     telephone: "",
   });
-  const [isSaving, setIsSaving] = useState(false); // New state to track saving
+  const [isSaving, setIsSaving] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isViewingSaved, setIsViewingSaved] = useState(false);
 
   useEffect(() => {
     const loadCurrentInvoice = async () => {
@@ -50,10 +50,13 @@ export default function EditableInvoice() {
         setItems(parsedInvoice.items);
         setInvoiceName(parsedInvoice.name || "");
         setInvoiceDetails({
-          ...invoiceDetails,
-          invoiceNumber: nextInvoiceNumber,
+          type: parsedInvoice.type || "",
+          to: parsedInvoice.to || "",
+          date: parsedInvoice.date || new Date().toLocaleDateString(),
+          invoiceNumber: parsedInvoice.invoiceNumber || nextInvoiceNumber,
+          telephone: parsedInvoice.telephone || "",
         });
-        await AsyncStorage.removeItem("currentInvoice"); // Clear after loading
+        setIsViewingSaved(true);
       } else {
         setInvoiceDetails({
           ...invoiceDetails,
@@ -65,6 +68,8 @@ export default function EditableInvoice() {
   }, []);
 
   const handleChange = (value, index, field) => {
+    if (!isEditMode && isViewingSaved) return;
+
     const updated = [...items];
     updated[index][field] = value;
 
@@ -77,6 +82,7 @@ export default function EditableInvoice() {
   };
 
   const addRow = () => {
+    if (!isEditMode && isViewingSaved) return;
     setItems([...items, { qty: "", name: "", price: "", total: 0 }]);
   };
 
@@ -89,17 +95,26 @@ export default function EditableInvoice() {
       { qty: "", name: "", price: "", total: 0 },
     ]);
     setInvoiceName("");
-    await AsyncStorage.removeItem("currentInvoice"); // Clear any opened invoice
+    setInvoiceDetails({
+      type: "",
+      to: "",
+      date: new Date().toLocaleDateString(),
+      invoiceNumber: invoiceDetails.invoiceNumber + 1,
+      telephone: "",
+    });
+    await AsyncStorage.removeItem("currentInvoice");
     setModalVisible(false);
+    setIsViewingSaved(false);
+    setIsEditMode(false);
   };
 
   const saveInvoice = async () => {
-    if (isSaving) return; // Prevent multiple saves
-    setIsSaving(true); // Disable save button
+    if (isSaving) return;
+    setIsSaving(true);
 
     if (!invoiceName) {
       setSaveModalVisible(true);
-      setIsSaving(false); // Re-enable save button if modal is shown
+      setIsSaving(false);
       return;
     }
 
@@ -123,13 +138,26 @@ export default function EditableInvoice() {
       JSON.stringify([invoice, ...existing])
     );
     alert("Invoice saved!");
-    setIsSaving(false); // Re-enable save button after saving
+    setIsSaving(false);
+    setIsViewingSaved(false);
+    setIsEditMode(false);
   };
 
   const confirmSaveInvoice = async () => {
     setInvoiceName(tempInvoiceName);
-    setSaveModalVisible(false); // Close the modal
-    await saveInvoice(); // Call saveInvoice after setting the name
+    setSaveModalVisible(false);
+    await saveInvoice();
+  };
+
+  const closeSavedInvoice = async () => {
+    await AsyncStorage.removeItem("currentInvoice");
+    setIsViewingSaved(false);
+    setIsEditMode(false);
+    clearAll();
+  };
+
+  const toggleEditMode = () => {
+    setIsEditMode(!isEditMode);
   };
 
   const grandTotal = items.reduce((sum, i) => sum + i.total, 0);
@@ -145,7 +173,40 @@ export default function EditableInvoice() {
           </Text>
         </View>
       </View>
-      <Text style={styles.invoiceName}>{invoiceName}</Text>
+
+      {isViewingSaved && (
+        <View style={styles.viewModeControls}>
+          {!isEditMode ? (
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={toggleEditMode}
+            >
+              <Text style={styles.buttonText}>Edit Invoice</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.saveButton} onPress={saveInvoice}>
+              <Text style={styles.buttonText}>
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={closeSavedInvoice}
+          >
+            <Text style={styles.buttonText}>Close Invoice</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {invoiceName && (
+        <TextInput
+          style={styles.invoiceNameInput}
+          placeholder="Invoice Name"
+          value={invoiceName}
+          onChangeText={setInvoiceName}
+          editable={!isViewingSaved || isEditMode}
+        />
+      )}
 
       <View style={styles.headerRow}>
         <Text style={styles.cellHeader}>Qty</Text>
@@ -157,44 +218,70 @@ export default function EditableInvoice() {
       {items.map((item, index) => (
         <View key={index} style={styles.row}>
           <TextInput
-            style={styles.qtyCell} // Use the updated style for quantity
+            style={styles.qtyCell}
             placeholder="Qty"
             keyboardType="numeric"
             value={item.qty}
             onChangeText={(text) => handleChange(text, index, "qty")}
+            editable={!isViewingSaved || isEditMode}
           />
           <TextInput
-            style={styles.descriptionCell} // Use the updated style for description
+            style={styles.descriptionCell}
             placeholder="Description"
             value={item.name}
             onChangeText={(text) => handleChange(text, index, "name")}
+            editable={!isViewingSaved || isEditMode}
           />
           <TextInput
-            style={styles.priceCell} // Use the updated style for price
+            style={styles.priceCell}
             placeholder="Price"
             keyboardType="numeric"
             value={item.price}
             onChangeText={(text) => handleChange(text, index, "price")}
+            editable={!isViewingSaved || isEditMode}
           />
           <Text style={styles.totalCell}>Rs {item.total.toFixed(2)}</Text>
         </View>
       ))}
 
-      <Button title="Add New Row" onPress={addRow} />
-      <Button title="Clear All" onPress={() => setModalVisible(true)} />
+      {(!isViewingSaved || isEditMode) && (
+        <TouchableOpacity style={styles.addButton} onPress={addRow}>
+          <Text style={styles.buttonText}>Add New Row</Text>
+        </TouchableOpacity>
+      )}
+
+      <View style={styles.buttonRow}>
+        {!isViewingSaved && (
+          <>
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={styles.buttonText}>Clear All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={saveInvoice}
+              disabled={isSaving}
+            >
+              <Text style={styles.buttonText}>
+                {isSaving ? "Saving..." : "Save Invoice"}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+
       <Text style={styles.grandTotal}>
         Grand Total: Rs {grandTotal.toFixed(2)}
       </Text>
 
-      <Button
-        title="Save Invoice"
-        onPress={saveInvoice}
-        disabled={isSaving} // Disable button while saving
-      />
-      <Button
-        title="View Saved Invoices"
+      <TouchableOpacity
+        style={styles.viewButton}
         onPress={() => router.push("/saved")}
-      />
+      >
+        <Text style={styles.buttonText}>View Saved Invoices</Text>
+      </TouchableOpacity>
 
       {/* Clear All Confirmation Modal */}
       <Modal
@@ -299,6 +386,7 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 20,
   },
   logoImage: {
     width: 130,
@@ -318,33 +406,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#34495e",
   },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 20,
+  viewModeControls: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 15,
   },
-  logo: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#2c3e50",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#34495e",
-  },
-  invoiceName: {
+  invoiceNameInput: {
     fontSize: 20,
     fontWeight: "600",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 15,
     color: "#2c3e50",
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
   },
   headerRow: {
     flexDirection: "row",
     marginBottom: 8,
-    backgroundColor: "#ecf0f1",
+    backgroundColor: "#2c3e50",
     padding: 10,
     borderRadius: 8,
   },
@@ -364,19 +446,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: "bold",
     textAlign: "center",
-    color: "#34495e",
-  },
-  cell: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#bdc3c7",
-    padding: 8,
-    marginRight: 4,
-    borderRadius: 4,
-    backgroundColor: "#ecf0f1",
+    color: "#fff",
   },
   qtyCell: {
-    flex: 0.5, // Decrease width for quantity input
+    flex: 0.5,
     borderWidth: 1,
     borderColor: "#bdc3c7",
     padding: 8,
@@ -385,7 +458,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ecf0f1",
   },
   descriptionCell: {
-    flex: 2, // Increase width for description input
+    flex: 2,
     borderWidth: 1,
     borderColor: "#bdc3c7",
     padding: 8,
@@ -394,7 +467,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ecf0f1",
   },
   priceCell: {
-    flex: 0.8, // Decrease width for price input
+    flex: 0.8,
     borderWidth: 1,
     borderColor: "#bdc3c7",
     padding: 8,
@@ -415,17 +488,74 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     textAlign: "right",
     color: "#27ae60",
+    backgroundColor: "#f8f9fa",
+    padding: 10,
+    borderRadius: 8,
+    elevation: 2,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 10,
   },
   button: {
-    marginVertical: 10,
-    backgroundColor: "#3498db",
-    padding: 10,
-    borderRadius: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
     alignItems: "center",
-    opacity: 1, // Default opacity
+    justifyContent: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  buttonDisabled: {
-    opacity: 0.6, // Reduced opacity for disabled state
+  buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  addButton: {
+    backgroundColor: "#3498db",
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignItems: "center",
+  },
+  clearButton: {
+    backgroundColor: "#e74c3c",
+    padding: 15,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 5,
+  },
+  saveButton: {
+    backgroundColor: "#2ecc71",
+    padding: 15,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 5,
+  },
+  viewButton: {
+    backgroundColor: "#9b59b6",
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 10,
+    alignItems: "center",
+  },
+  editButton: {
+    backgroundColor: "#f39c12",
+    padding: 12,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 5,
+  },
+  closeButton: {
+    backgroundColor: "#95a5a6",
+    padding: 12,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 5,
   },
   modalContainer: {
     flex: 1,

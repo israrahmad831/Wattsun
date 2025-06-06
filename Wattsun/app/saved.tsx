@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList,
-  Button,
   StyleSheet,
   Modal,
   TouchableOpacity,
@@ -28,7 +27,7 @@ export default function SavedInvoices() {
 
   const viewInvoice = async (invoice) => {
     await AsyncStorage.setItem("currentInvoice", JSON.stringify(invoice));
-    router.push("/"); // Redirect to the form
+    router.push("/");
   };
 
   const confirmDelete = (id) => {
@@ -48,38 +47,67 @@ export default function SavedInvoices() {
 
   return (
     <View style={styles.container}>
-      <Button title="Back" onPress={() => router.push("/")} />
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.push("/")}
+      >
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
       <Text style={styles.header}>Saved Invoices</Text>
+
       <FlatList
         data={invoices}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.invoiceName}>Name: {item.name}</Text>
-            <Text style={styles.text}>Type: {item.type}</Text>
-            <Text style={styles.text}>To: {item.to}</Text>
-            <Text style={styles.text}>Date: {item.date}</Text>
-            <Text style={styles.text}>Invoice #: {item.invoiceNumber}</Text>
-            <Text style={styles.text}>Telephone: {item.telephone}</Text>
-            <Text style={styles.text}>Total: Rs {item.total}</Text>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => generatePDF(item)}
-            >
-              <Text style={styles.buttonText}>Export PDF</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => viewInvoice(item)}
-            >
-              <Text style={styles.buttonText}>View</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: "#e74c3c" }]}
-              onPress={() => confirmDelete(item.id)}
-            >
-              <Text style={styles.buttonText}>Delete</Text>
-            </TouchableOpacity>
+            <Text style={styles.invoiceName}>{item.name}</Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Type:</Text>
+              <Text style={styles.detailValue}>{item.type}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>To:</Text>
+              <Text style={styles.detailValue}>{item.to}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Date:</Text>
+              <Text style={styles.detailValue}>{item.date}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Invoice #:</Text>
+              <Text style={styles.detailValue}>{item.invoiceNumber}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Telephone:</Text>
+              <Text style={styles.detailValue}>{item.telephone}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Total:</Text>
+              <Text style={[styles.detailValue, styles.totalValue]}>
+                Rs {item.total.toFixed(2)}
+              </Text>
+            </View>
+
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.pdfButton]}
+                onPress={() => generatePDF(item)}
+              >
+                <Text style={styles.buttonText}>Export PDF</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.viewButton]}
+                onPress={() => viewInvoice(item)}
+              >
+                <Text style={styles.buttonText}>View</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.deleteButton]}
+                onPress={() => confirmDelete(item.id)}
+              >
+                <Text style={styles.buttonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       />
@@ -97,16 +125,16 @@ export default function SavedInvoices() {
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={styles.modalButton}
+                style={[styles.modalButton, styles.deleteButton]}
                 onPress={deleteInvoice}
               >
-                <Text style={styles.modalButtonText}>Yes</Text>
+                <Text style={styles.buttonText}>Delete</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.modalButton}
+                style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.modalButtonText}>No</Text>
+                <Text style={styles.buttonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -122,6 +150,15 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#f0f4f8",
   },
+  backButton: {
+    alignSelf: "flex-start",
+    marginBottom: 15,
+  },
+  backButtonText: {
+    color: "#3498db",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
   header: {
     fontSize: 26,
     fontWeight: "bold",
@@ -131,9 +168,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "#ffffff",
-    padding: 15,
+    padding: 20,
     marginVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -143,24 +180,61 @@ const styles = StyleSheet.create({
   invoiceName: {
     fontSize: 20,
     fontWeight: "600",
-    marginBottom: 5,
-    color: "#34495e",
+    marginBottom: 15,
+    color: "#2c3e50",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    paddingBottom: 10,
   },
-  text: {
+  detailRow: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  detailLabel: {
+    width: 100,
     fontSize: 16,
     color: "#7f8c8d",
+    fontWeight: "bold",
   },
-  button: {
-    marginVertical: 5,
-    backgroundColor: "#3498db",
-    padding: 10,
-    borderRadius: 5,
+  detailValue: {
+    flex: 1,
+    fontSize: 16,
+    color: "#34495e",
+  },
+  totalValue: {
+    color: "#27ae60",
+    fontWeight: "bold",
+  },
+  buttonGroup: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 15,
+  },
+  actionButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
     alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 5,
+    elevation: 2,
   },
   buttonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 14,
+  },
+  pdfButton: {
+    backgroundColor: "#3498db",
+  },
+  viewButton: {
+    backgroundColor: "#2ecc71",
+  },
+  deleteButton: {
+    backgroundColor: "#e74c3c",
+  },
+  cancelButton: {
+    backgroundColor: "#95a5a6",
   },
   modalContainer: {
     flex: 1,
@@ -189,13 +263,8 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     marginHorizontal: 10,
-    padding: 10,
-    backgroundColor: "#e74c3c",
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
     alignItems: "center",
-  },
-  modalButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
   },
 });
