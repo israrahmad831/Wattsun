@@ -1,0 +1,4 @@
+# Ignore the Wattsun node_modules directory
+Wattsun/node_modules
+Wattsun/.vscode
+Wattsun/.expo
