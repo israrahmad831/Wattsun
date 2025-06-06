@@ -73,7 +73,6 @@ export default function EditableInvoice() {
     const updated = [...items];
     updated[index][field] = value;
 
-    // Auto-calculate total
     const qty = parseFloat(updated[index].qty) || 0;
     const price = parseFloat(updated[index].price) || 0;
     updated[index].total = qty * price;
@@ -283,7 +282,6 @@ export default function EditableInvoice() {
         <Text style={styles.buttonText}>View Saved Invoices</Text>
       </TouchableOpacity>
 
-      {/* Clear All Confirmation Modal */}
       <Modal
         visible={modalVisible}
         transparent={true}
@@ -310,7 +308,6 @@ export default function EditableInvoice() {
         </View>
       </Modal>
 
-      {/* Save Invoice Details Modal */}
       <Modal
         visible={saveModalVisible}
         transparent={true}

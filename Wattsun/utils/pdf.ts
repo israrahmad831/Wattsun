@@ -3,7 +3,6 @@ import * as Sharing from "expo-sharing";
 import { Platform, Image } from "react-native";
 import * as FileSystem from "expo-file-system";
 
-// Helper function to convert local image to base64
 const imageToBase64 = async (imagePath: string): Promise<string> => {
   try {
     const base64 = await FileSystem.readAsStringAsync(imagePath, {
@@ -12,7 +11,7 @@ const imageToBase64 = async (imagePath: string): Promise<string> => {
     return `data:image/png;base64,${base64}`;
   } catch (error) {
     console.error("Error converting image to base64:", error);
-    return ""; // Return empty string if conversion fails
+    return "";
   }
 };
 
@@ -24,7 +23,6 @@ export const generatePDF = async (invoice) => {
     return;
   }
 
-  // Convert your local logo to base64
   const logoBase64 = await imageToBase64(
     require("../assets/images/Wattsun.png")
   );
