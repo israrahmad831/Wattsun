@@ -9,9 +9,11 @@ import {
   ScrollView,
   Modal,
   TouchableOpacity,
+  Image, // Import Image component
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import logo from "../assets/images/Wattsun.png"; // Import the logo
 
 export default function EditableInvoice() {
   const router = useRouter();
@@ -134,13 +136,16 @@ export default function EditableInvoice() {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.logoContainer}>
-        <Text style={styles.logo}>[Your Logo Here]</Text>
+      <View style={styles.header}>
+        <Image source={logo} style={styles.logoImage} />
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>WATTSUN ENERGY</Text>
+          <Text style={styles.headerSubtitle}>
+            MAIN SAMUNDRI ROAD GOJRA PH# 03236677706
+          </Text>
+        </View>
       </View>
-
       <Text style={styles.invoiceName}>{invoiceName}</Text>
-
-      <Text style={styles.title}>Wattsun Solar Energy Invoice Form</Text>
 
       <View style={styles.headerRow}>
         <Text style={styles.cellHeader}>Qty</Text>
@@ -289,6 +294,29 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: "#f0f4f8",
+  },
+  header: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  logoImage: {
+    width: 130,
+    height: 130,
+    resizeMode: "contain",
+    marginRight: 10,
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#2c3e50",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#34495e",
   },
   logoContainer: {
     alignItems: "center",
